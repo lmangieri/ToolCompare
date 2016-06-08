@@ -3,6 +3,7 @@ package com.amdocs.app;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.ResourceBundle;
 
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
@@ -21,6 +22,14 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 public class GetFromSvn {
 
     public static void main(String[] args) {
+    	
+    	ResourceBundle resourceConfig = ResourceBundle.getBundle("properties");
+    	
+    	String teste = resourceConfig.getString("prop1");
+    	System.out.println(teste);
+    	
+    	
+    	
 
         String url = "zebra";
         String name = "zebra";
