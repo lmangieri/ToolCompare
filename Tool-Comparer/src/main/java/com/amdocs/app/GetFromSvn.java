@@ -2,9 +2,11 @@ package com.amdocs.app;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.ResourceBundle;
 
+import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNNodeKind;
 import org.tmatesoft.svn.core.SVNProperties;
@@ -20,43 +22,67 @@ import org.tmatesoft.svn.core.wc.SVNWCUtil;
 
 
 public class GetFromSvn {
+	
+	public String discoverPath(SVNRepository repository, String fileName, String path)
+			throws SVNException {
+
+		String tempPath;
+		String result;
+		DAVRepositoryFactory.setup();
+
+		try {
+			Collection<SVNDirEntry> entries = repository.getDir(path, -1, null,(Collection) null);
+			Iterator<SVNDirEntry> iterator = entries.iterator();
+			
+			while (iterator.hasNext()) {
+				SVNDirEntry entry = iterator.next();
+				
+				if(entry.getKind().equals(SVNNodeKind.DIR)) {
+
+					tempPath = this.getConcatenatePath(path, entry.getName());
+					
+					result = this.discoverPath(repository, fileName, tempPath);
+					if(result != null) {
+						return result;
+					}
+				} else if(entry.getKind().equals(SVNNodeKind.FILE)){
+					if(entry.getName().equals(fileName)) {
+						return this.getConcatenatePath(path, entry.getName());
+					}
+				}
+			}
+			return null;
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+
+	}
+	
+	private String getConcatenatePath(String path, String dir) {
+		String concatenatedPath = path;
+		if(path.length() > 1) {
+			concatenatedPath = concatenatedPath + "/";
+		}
+		concatenatedPath = concatenatedPath + dir;
+		return concatenatedPath;
+	}
 
     public static void main(String[] args) {
     	
+    	GetFromSvn gfs = new GetFromSvn(); //TODO: find an appropriate class name.
+    	
     	ResourceBundle resourceConfig = ResourceBundle.getBundle("properties");
-    	
-    	String teste = resourceConfig.getString("prop1");
-    	System.out.println(teste);
-    	
-    	
-    	
 
-        String url = "zebra";
-        String name = "zebra";
-        String password = "zebra";
-        String filePath = "zebra";
+        String url = resourceConfig.getString("stageReport");
+        String name = resourceConfig.getString("svnusername");
+        String password = resourceConfig.getString("svnpass");
+        String fileName = resourceConfig.getString("fileName");
+        String filePath;
 
         setupLibrary();
 
-        if (args != null) {
-            /*
-             * Obtains a repository location URL
-             */
-            url = (args.length >= 1) ? args[0] : url;
-            /*
-             * Obtains a file path
-             */
-            filePath = (args.length >= 2) ? args[1] : filePath;
-            /*
-             * Obtains an account name (will be used to authenticate the user to
-             * the server)
-             */
-            name = (args.length >= 3) ? args[2] : name;
-            /*
-             * Obtains a password
-             */
-            password = (args.length >= 4) ? args[3] : password;
-        }
         SVNRepository repository = null;
         try {
             /*
@@ -109,8 +135,13 @@ public class GetFromSvn {
              * doesn't the program exits. SVNNodeKind is that one who says what is
              * located at a path in a revision. -1 means the latest revision.
              */
-            SVNNodeKind nodeKind = repository.checkPath(filePath, -1);
             
+            filePath = gfs.discoverPath(repository,fileName,"");
+        	System.out.println(filePath);
+        	
+        	SVNNodeKind nodeKind = repository.checkPath(filePath, -1);
+            
+           
             if (nodeKind == SVNNodeKind.NONE) {
                 System.err.println("There is no entry at '" + url + "'.");
                 System.exit(1);
@@ -119,6 +150,7 @@ public class GetFromSvn {
                         + "' is a directory while a file was expected.");
                 System.exit(1);
             }
+            
             /*
              * Gets the contents and properties of the file located at filePath
              * in the repository at the latest revision (which is meant by a
@@ -131,6 +163,8 @@ public class GetFromSvn {
             System.exit(1);
         }
 
+        /*
+        
         /*
          * Here the SVNProperty class is used to get the value of the
          * svn:mime-type property (if any). SVNProperty is used to facilitate
@@ -183,6 +217,7 @@ public class GetFromSvn {
         System.out.println("---------------------------------------------");
         System.out.println("Repository latest revision: " + latestRevision);
         System.exit(0);
+        
     }
 
     /*
